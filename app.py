@@ -1,3 +1,5 @@
+# Code written by : Aryan Verma (s2512060)
+
 import streamlit as st
 import numpy as np
 import tensorflow as tf
@@ -18,12 +20,12 @@ from tensorflow.keras.layers import Layer
 
 nltk.download('stopwords')
 nltk.download('punkt')
-# nltk.download('omw-1.4')
 
 # Load spaCy model
 nlp = spacy.load('en_core_web_sm')
 stop_words = set(stopwords.words('english'))
 
+# Developing the model for the attention module to be loaded
 class Attention(Layer):
     def __init__(self, **kwargs):
         super(Attention, self).__init__(**kwargs)
@@ -42,10 +44,13 @@ class Attention(Layer):
     def compute_output_shape(self, input_shape):
         return (input_shape[0], input_shape[-1])
 
+
+# Function for lemmatisation using Spacy
 def spacy_lemmatize(text):
     doc = nlp(text)
     return ' '.join(token.lemma_ for token in doc)
 
+# Function for Cleaning the text
 def clean_spacy_text(text):
     # Convert to lowercase
     text = str(text)
@@ -71,15 +76,7 @@ with open('models/tokenizer.pkl', 'rb') as handle:
 
 max_text_length = 300  # Adjust this to your model's max sequence length
 
-# def preprocess_text(text):
-#     sequences = tokenizer.texts_to_sequences([text])
-#     padded_sequences = pad_sequences(sequences, maxlen=max_text_length)
-#     return padded_sequences
-
-# def predict_proba(texts):
-#     processed_texts = [preprocess_text(text) for text in texts]
-#     return model.predict(np.vstack(processed_texts))
-
+# Function for predicting from the model 
 def predict_proba(arr):
     list_tokenized_ex = tokenizer.texts_to_sequences(arr)
     Ex = pad_sequences(list_tokenized_ex, maxlen=max_text_length)
@@ -90,29 +87,15 @@ def predict_proba(arr):
       returnable.append(np.array([1-temp,temp]))
     return np.array(returnable)
 
+# Function for getting explanations from the LIME
 def get_explanation(text, samples=4000, num_features=10):
     explainer = LimeTextExplainer(class_names=['Not Upheld', 'Upheld'])
     explanation = explainer.explain_instance(text, predict_proba, num_features=num_features, num_samples=samples)
     return explanation
 
-# def plot_explanation(explanation):
-#     fig, ax = plt.subplots()
-#     explanation.as_pyplot_figure(label=0, ax=ax)
-#     buf = BytesIO()
-#     plt.savefig(buf, format='png')
-#     buf.seek(0)
-#     return buf
 
-def plot_explanation(explanation):
-    fig = explanation.as_pyplot_figure(label=1)
-    buf = BytesIO()
-    fig.savefig(buf, format='png')
-    buf.seek(0)
-    return buf
-
-# Streamlit app
+# Initialising the Streamlit app
 st.image("header.png", caption="About the tool", use_column_width=True)
-
 
 # Description
 st.markdown("""
@@ -128,20 +111,23 @@ Using this tool, you can:
 """)
 
 text_input = st.text_area("Enter your text here:")
-
+# No. of samples for the LIME
 n_samples = st.text_input('Number of samples to generate for LIME explainer:', value=5000)
-
+# No. of features of text to show
 n_features = st.text_input('Number of features (important words) to plot:', value=10)
 
-if st.button("Explain"):
+# The Explain button functionality
+if st.button("Analyse and Explain"):
     if text_input:
-        with st.spinner(f"Please wait {int(n_samples)//1000} seconds ...."):
+        with st.spinner(f"Please wait {int(n_samples)//800} seconds ...."):
             # Get LIME explanation
             text_processed = clean_spacy_text(text_input)
-            explanation = get_explanation(text_processed, int(n_samples), int(n_features))
-            
-            # Display explainer HTML object
-            components.html(explanation.as_html(), height=800)
+            if len(text_processed)>=10:
+                explanation = get_explanation(text_processed, int(n_samples), int(n_features))
+                # Display explainer HTML object
+                components.html(explanation.as_html(), height=800)
+            else:
+               st.warning("Please enter some more relevant text with good length to analyze.") 
 
     else:
         st.warning("Please enter some text to analyze.")
