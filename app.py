@@ -119,15 +119,18 @@ n_features = st.text_input('Number of features (important words) to plot:', valu
 # The Explain button functionality
 if st.button("Analyse and Explain"):
     if text_input:
-        with st.spinner(f"Please wait {int(n_samples)//800} seconds ...."):
+        if len(text_input)>=80:
+            with st.spinner(f"Please wait {int(n_samples)//800} seconds ...."):
             # Get LIME explanation
             text_processed = clean_spacy_text(text_input)
-            if len(text_processed)>=10:
+            if len(text_processed) >=50:
                 explanation = get_explanation(text_processed, int(n_samples), int(n_features))
                 # Display explainer HTML object
                 components.html(explanation.as_html(), height=800)
             else:
-               st.warning("Please enter some more relevant text with good length to analyze.") 
+                st.warning("Kindly write meaningful text (After pre-processing your text is not-suitable for AI based Inference!)")
+        else:
+            st.warning("Kindly enter more relevant text with good length to analyze.") 
 
     else:
         st.warning("Please enter some text to analyze.")
